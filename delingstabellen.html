@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Delingstabellen</title>
+<style>
+  :root{
+    --bg-board: #1E3A34;
+    --bg-board-2: #24443D;
+    --paper: #F2EADA;
+    --paper-2: #E9DCC3;
+    --ink: #23302B;
+    --ink-soft: #4A5850;
+    --gold: #C99A3C;
+    --gold-deep: #A87F2E;
+    --rust: #A24C3B;
+    --sage: #5F8069;
+    --line: #C9BC9C;
+    --font-display: Arial, Helvetica, 'Segoe UI', sans-serif;
+    --font-body: Arial, Helvetica, 'Segoe UI', sans-serif;
+    --font-num: Arial, Helvetica, 'Segoe UI', sans-serif;
+    --radius-lg: 16px;
+    --radius-md: 12px;
+    --radius-sm: 9px;
+    --shadow-1: 0 1px 2px rgba(35,48,43,0.05), 0 2px 8px rgba(35,48,43,0.06);
+    --shadow-2: 0 6px 18px rgba(35,48,43,0.14);
+    --content-width: min(620px, 92vw);
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+
+  button{
+    font-family: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  button:focus-visible, input:focus-visible, a:focus-visible{
+    outline: 3px solid var(--gold-deep);
+    outline-offset: 2px;
+  }
+
+  #app{
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ---------- Header ---------- */
+  header.board{
+    background: var(--bg-board);
+    background-image: linear-gradient(180deg, var(--bg-board), var(--bg-board-2));
+    color: var(--paper);
+    padding: 22px 24px 26px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  header.board.compact{
+    padding: 12px 20px;
+  }
+  header.board.compact h1{
+    font-size: 19px;
+  }
+
+  header.board .row{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    max-width: 980px;
+    margin: 0 auto;
+  }
+
+  header.board h1{
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(22px, 4vw, 30px);
+    margin: 0;
+    letter-spacing: -0.3px;
+  }
+
+  .home-link{
+    background: transparent;
+    border: 1.5px solid rgba(242,234,218,0.5);
+    color: var(--paper);
+    border-radius: 999px;
+    padding: 7px 16px;
+    font-size: 13.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background 0.12s ease, border-color 0.12s ease;
+  }
+  .home-link:hover{ background: rgba(242,234,218,0.12); border-color: rgba(242,234,218,0.8); }
+
+  /* ---------- Main area ---------- */
+  main{
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+  }
+
+  .wrap{
+    width: 100%;
+    max-width: 1100px;
+  }
+
+  /* ---------- Home grid ---------- */
+  .grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 14px;
+    margin-top: 6px;
+  }
+
+  .tile{
+    background: var(--paper-2);
+    border: 1px solid rgba(35,48,43,0.08);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-1);
+    padding: 20px 18px;
+    text-align: left;
+    min-height: 108px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.14s ease, box-shadow 0.14s ease, background 0.1s ease;
+  }
+  .tile:hover{ transform: translateY(-2px); box-shadow: var(--shadow-2); }
+  .tile:active{ transform: translateY(0); background: #E4D6B6; box-shadow: var(--shadow-1); }
+
+  .tile .num{
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 32px;
+    color: var(--ink);
+    line-height: 1;
+    letter-spacing: -0.5px;
+  }
+  .tile .label{
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    margin-top: 10px;
+  }
+
+  .tile.test{
+    grid-column: span 2;
+    position: relative;
+    background: linear-gradient(135deg, #F6EDD5, var(--paper-2));
+    border: 1.5px solid var(--gold);
+  }
+  .tile.test .seal{
+    position: absolute;
+    top: 16px;
+    right: 18px;
+    transform: rotate(8deg);
+    filter: drop-shadow(0 1px 1px rgba(140,106,34,0.28));
+  }
+  .tile.test .num{ font-size: 30px; padding-right: 44px; }
+
+  .tile.wide{
+    grid-column: span 2;
+  }
+  .tile.wide .num{ font-size: 30px; }
+
+  @media (max-width: 480px){
+    .tile.test, .tile.wide{ grid-column: span 2; }
+  }
+
+  section.intro-line{
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    margin: 0 0 20px;
+    max-width: 640px;
+  }
+
+  /* ---------- Practice / Test screen ---------- */
+  .session{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .meta-row{
+    display: flex;
+    flex-shrink: 0;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: var(--content-width);
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+
+  .meta-row .streak{
+    font-family: var(--font-num);
+    font-size: 17px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .meta-row .timer{
+    font-family: var(--font-num);
+    font-size: 17px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .flash-card{
+    background: var(--bg-board);
+    background-image: linear-gradient(180deg, var(--bg-board), var(--bg-board-2));
+    color: var(--paper);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: var(--content-width);
+    flex-shrink: 0;
+    padding: clamp(14px, 2.5vh, 26px) 24px clamp(10px, 1.8vh, 18px);
+    text-align: center;
+    box-shadow: var(--shadow-2);
+    transition: box-shadow 0.15s ease, transform 0.1s ease;
+    border: 2px solid transparent;
+  }
+  .flash-card.correct{ border-color: #8FBF9F; box-shadow: 0 0 0 4px rgba(143,191,159,0.35); }
+  .flash-card.wrong{ border-color: var(--rust); box-shadow: 0 0 0 4px rgba(162,76,59,0.32); }
+
+  .problem{
+    font-family: var(--font-num);
+    font-weight: 600;
+    font-size: clamp(28px, 3.6vw + 3.6vh, 54px);
+    letter-spacing: 0.5px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .feedback-line{
+    min-height: 18px;
+    margin-top: 2px;
+    font-size: 14px;
+    color: #CFE0D6;
+  }
+
+  .answer-area{
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    max-width: var(--content-width);
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* ---------- Mode switch ---------- */
+  .mode-row{
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+  }
+  .mode-switch{
+    display: inline-flex;
+    background: var(--paper-2);
+    border: 1.5px solid rgba(35,48,43,0.1);
+    border-radius: 999px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .mode-switch button{
+    border: none;
+    background: transparent;
+    color: var(--ink-soft);
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  .mode-switch button.active{
+    background: var(--bg-board);
+    color: var(--paper);
+  }
+
+  /* ---------- Typed answer mode ---------- */
+  .type-panel{
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+  .answer-display{
+    width: 100%;
+    max-width: 220px;
+    text-align: center;
+    background: var(--paper-2);
+    border: 2px solid rgba(35,48,43,0.12);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    flex-shrink: 0;
+  }
+  .answer-display input{
+    width: 100%;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-family: var(--font-num);
+    font-weight: 700;
+    font-size: 30px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .answer-display input:focus{ outline: none; }
+  .answer-display input::placeholder{ color: rgba(35,48,43,0.28); }
+
+  .keypad{
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 6px;
+  }
+  .key-btn{
+    background: var(--paper-2);
+    border: 1px solid rgba(35,48,43,0.08);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-num);
+    font-weight: 600;
+    font-size: clamp(16px, 2.6vh, 26px);
+    color: var(--ink);
+    width: 100%;
+    height: 100%;
+    font-variant-numeric: tabular-nums;
+    transition: background 0.08s ease, transform 0.08s ease;
+  }
+  .key-btn:active{ background: rgba(201,154,60,0.22); transform: scale(0.96); }
+  .key-btn.wide{ grid-column: span 1; }
+  .key-btn.clear{ color: var(--rust); font-size: clamp(13px, 2vh, 18px); }
+  .key-btn.submit{
+    background: var(--bg-board);
+    color: var(--paper);
+  }
+  .key-btn.submit:active{ background: var(--bg-board-2); }
+  .key-btn.submit:disabled{
+    background: rgba(35,48,43,0.12);
+    color: rgba(35,48,43,0.35);
+    cursor: not-allowed;
+  }
+
+  /* ---------- Multiple choice mode ---------- */
+  .mc-grid{
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .mc-btn{
+    background: var(--paper-2);
+    border: 1px solid rgba(35,48,43,0.08);
+    border-radius: var(--radius-md);
+    font-family: var(--font-num);
+    font-weight: 700;
+    font-size: clamp(22px, 4vh, 38px);
+    color: var(--ink);
+    width: 100%;
+    height: 100%;
+    font-variant-numeric: tabular-nums;
+    transition: background 0.08s ease, transform 0.08s ease;
+  }
+  .mc-btn:active{ background: rgba(201,154,60,0.22); transform: scale(0.97); }
+
+  .start-panel{
+    text-align: center;
+    max-width: 480px;
+    margin-top: auto;
+    margin-bottom: auto;
+  }
+  .start-panel h2{
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 25px;
+    margin-bottom: 6px;
+    letter-spacing: -0.3px;
+  }
+  .start-panel p{
+    color: var(--ink-soft);
+    font-size: 14.5px;
+    line-height: 1.55;
+  }
+  .primary-btn{
+    background: var(--bg-board);
+    color: var(--paper);
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 14px 30px;
+    font-size: 15.5px;
+    font-weight: 600;
+    min-height: 50px;
+    box-shadow: var(--shadow-1);
+    transition: background 0.12s ease, transform 0.08s ease;
+  }
+  .start-panel .primary-btn{ margin-top: 18px; }
+  .primary-btn:active{ background: var(--bg-board-2); transform: scale(0.98); }
+
+  .ghost-btn{
+    background: transparent;
+    border: 1.5px solid rgba(35,48,43,0.14);
+    color: var(--ink);
+    border-radius: var(--radius-md);
+    padding: 14px 22px;
+    font-size: 15.5px;
+    font-weight: 600;
+    min-height: 50px;
+    transition: background 0.12s ease;
+  }
+  .ghost-btn:active{ background: var(--paper-2); }
+
+  /* ---------- Summary ---------- */
+  .summary-card{
+    background: var(--paper-2);
+    border: 1px solid rgba(35,48,43,0.08);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-1);
+    padding: 32px 26px;
+    text-align: center;
+    max-width: 420px;
+    width: 100%;
+    margin-top: auto;
+    margin-bottom: auto;
+  }
+  .summary-card .score{
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 42px;
+    margin: 6px 0 4px;
+    letter-spacing: -0.5px;
+  }
+  .btn-row{
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+    margin-bottom: auto;
+    flex-wrap: wrap;
+  }
+
+  /* ---------- Diploma ---------- */
+  .diploma{
+    background: var(--paper);
+    border: 3px double var(--gold);
+    border-radius: 10px;
+    padding: 40px 30px 32px;
+    max-width: 560px;
+    width: 100%;
+    text-align: center;
+    position: relative;
+    margin-top: auto;
+  }
+  .diploma .kicker{
+    font-size: 13px;
+    color: var(--ink-soft);
+    letter-spacing: 0.5px;
+  }
+  .diploma h2{
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 28px;
+    margin: 6px 0 20px;
+    letter-spacing: -0.3px;
+  }
+  .seal-medal{
+    margin: 0 auto 14px;
+  }
+  .name-line{
+    margin: 18px 0;
+    font-size: 15px;
+  }
+  .name-line input{
+    font-family: var(--font-display);
+    font-size: 20px;
+    text-align: center;
+    border: none;
+    border-bottom: 1.5px solid var(--ink);
+    background: transparent;
+    padding: 4px 8px;
+    width: 260px;
+    max-width: 80%;
+    color: var(--ink);
+  }
+  .name-line input:focus{ outline: none; border-bottom-color: var(--gold-deep); }
+
+  .diploma p.result-line{
+    font-size: 15px;
+    color: var(--ink-soft);
+    margin: 4px 0;
+  }
+  .diploma .time-big{
+    font-family: var(--font-num);
+    font-size: 40px;
+    color: var(--ink);
+    margin: 8px 0 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .diploma .record-note{
+    font-size: 13.5px;
+    color: var(--gold-deep);
+    font-weight: 600;
+    margin-bottom: 6px;
+    min-height: 18px;
+  }
+  .diploma .date-line{
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 18px;
+  }
+
+  .visually-hidden{
+    position: absolute;
+    width: 1px; height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var TARGET_STREAK = 30;
+  var MAX_ZERO_IN_TEST = 2;
+  var TEST_RECENT_WINDOW = 6;
+  var MAX_TYPED_LEN = 2; // quotients are always 0-10
+
+  var state = {
+    screen: 'home',
+    tables: null,
+    label: '',
+    queue: [],
+    idx: 0,
+    correct: 0,
+    wrong: 0,
+    streak: 0,
+    problem: null,
+    cardClass: '',
+    feedback: '',
+    timerRunning: false,
+    startTime: 0,
+    elapsed: 0,
+    finalTime: 0,
+    bestTime: null,
+    isNewRecord: false,
+    testWrongTotal: 0,
+    testZeroCount: 0,
+    answerMode: 'type', // 'type' | 'mc'
+    typedValue: '',
+    mcOptions: null
+  };
+
+  var timerHandle = null;
+  var app = document.getElementById('app');
+
+  function shuffle(arr){
+    for (var i = arr.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+
+  function fmtTime(ms){
+    var s = ms / 1000;
+    return s.toFixed(1).replace('.', ',') + ' sek';
+  }
+
+  function fmtClock(ms){
+    var s = ms / 1000;
+    return s.toFixed(1).replace('.', ',');
+  }
+
+  // ---------------- Storage (best test time + preferred answer mode) ----------------
+  function loadBestTime(cb){
+    if (!window.storage){ cb(null); return; }
+    window.storage.get('delingstest-best-tid', false).then(function(res){
+      if (res && res.value){
+        var v = parseFloat(res.value);
+        cb(isNaN(v) ? null : v);
+      } else {
+        cb(null);
+      }
+    }).catch(function(){ cb(null); });
+  }
+
+  function saveBestTime(ms){
+    if (!window.storage) return;
+    window.storage.set('delingstest-best-tid', String(ms), false).catch(function(){});
+  }
+
+  function loadAnswerMode(cb){
+    if (!window.storage){ cb(null); return; }
+    window.storage.get('delingstest-svarmodus', false).then(function(res){
+      cb(res && (res.value === 'type' || res.value === 'mc') ? res.value : null);
+    }).catch(function(){ cb(null); });
+  }
+
+  function saveAnswerMode(mode){
+    if (!window.storage) return;
+    window.storage.set('delingstest-svarmodus', mode, false).catch(function(){});
+  }
+
+  // ---------------- Navigation ----------------
+  function goHome(){
+    stopTimer();
+    state.screen = 'home';
+    render();
+  }
+
+  function setAnswerMode(mode){
+    if (state.answerMode === mode) return;
+    state.answerMode = mode;
+    saveAnswerMode(mode);
+    prepareAnswerState();
+    render();
+  }
+
+  // Build the problem list for a set of divisor "tables": for each table t,
+  // the ten problems (t*1)/t=1 ... (t*10)/t=10.
+  function startPractice(tables, label){
+    var problems = [];
+    tables.forEach(function(t){
+      for (var k = 1; k <= 10; k++){ problems.push({ divisor: t, quotient: k }); }
+    });
+    shuffle(problems);
+    state.screen = 'practice';
+    state.tables = tables;
+    state.label = label;
+    state.queue = problems;
+    state.idx = 0;
+    state.correct = 0;
+    state.wrong = 0;
+    state.cardClass = '';
+    state.feedback = '';
+    nextPracticeProblem();
+  }
+
+  function nextPracticeProblem(){
+    if (state.idx >= state.queue.length){
+      state.screen = 'practice-summary';
+      render();
+      return;
+    }
+    var p = state.queue[state.idx];
+    setProblem(p.divisor, p.quotient);
+    render();
+  }
+
+  function startTestIntro(){
+    state.screen = 'test-intro';
+    render();
+  }
+
+  function beginTest(){
+    state.screen = 'test';
+    state.streak = 0;
+    state.cardClass = '';
+    state.feedback = '';
+    state.testWrongTotal = 0;
+    state.testZeroCount = 0;
+    testRecentKeys = [];
+    loadBestTime(function(best){
+      state.bestTime = best;
+      nextTestProblem();
+      startTimer();
+    });
+  }
+
+  var testRecentKeys = [];
+  function nextTestProblem(){
+    var divisor, quotient, key;
+    var zeroCapped = state.testZeroCount >= MAX_ZERO_IN_TEST;
+    do {
+      divisor = 1 + Math.floor(Math.random() * 10);
+      if (zeroCapped){
+        quotient = 1 + Math.floor(Math.random() * 10);
+      } else {
+        quotient = Math.floor(Math.random() * 11);
+      }
+      key = divisor + 'x' + quotient;
+    } while (testRecentKeys.indexOf(key) !== -1);
+    testRecentKeys.push(key);
+    if (testRecentKeys.length > TEST_RECENT_WINDOW){ testRecentKeys.shift(); }
+    if (quotient === 0){ state.testZeroCount++; }
+    setProblem(divisor, quotient);
+    render();
+  }
+
+  function setProblem(divisor, quotient){
+    var dividend = divisor * quotient;
+    state.problem = { divisor: divisor, quotient: quotient, dividend: dividend, answer: quotient };
+    state.cardClass = '';
+    state.feedback = '';
+    prepareAnswerState();
+  }
+
+  function prepareAnswerState(){
+    state.typedValue = '';
+    if (state.answerMode === 'mc' && state.problem){
+      state.mcOptions = buildMcOptions(state.problem.answer);
+    } else {
+      state.mcOptions = null;
+    }
+  }
+
+  function buildMcOptions(answer){
+    var pool = [answer - 2, answer - 1, answer + 1, answer + 2, answer - 3, answer + 3]
+      .filter(function(n){ return n >= 0 && n <= 10 && n !== answer; });
+    shuffle(pool);
+    var distractors = pool.slice(0, 3);
+    while (distractors.length < 3){
+      var candidate = Math.floor(Math.random() * 11);
+      if (candidate !== answer && distractors.indexOf(candidate) === -1){
+        distractors.push(candidate);
+      }
+    }
+    var options = distractors.concat([answer]);
+    return shuffle(options);
+  }
+
+  function startTimer(){
+    state.timerRunning = true;
+    state.startTime = Date.now();
+    state.elapsed = 0;
+    if (timerHandle) clearInterval(timerHandle);
+    timerHandle = setInterval(function(){
+      state.elapsed = Date.now() - state.startTime;
+      updateTimerDisplay();
+    }, 100);
+  }
+
+  function stopTimer(){
+    state.timerRunning = false;
+    if (timerHandle){ clearInterval(timerHandle); timerHandle = null; }
+  }
+
+  function updateTimerDisplay(){
+    var elNode = document.getElementById('live-timer');
+    if (elNode) elNode.textContent = fmtClock(state.elapsed);
+  }
+
+  // ---------------- Answer handling ----------------
+  function submitAnswer(given){
+    if (state.cardClass) return; // ignore input during feedback flash
+    var right = given === state.problem.answer;
+
+    if (state.screen === 'practice'){
+      if (right){ state.correct++; state.cardClass = 'correct'; state.feedback = ''; }
+      else { state.wrong++; state.cardClass = 'wrong'; state.feedback = 'Svar: ' + state.problem.answer; }
+      render();
+      setTimeout(function(){
+        state.idx++;
+        nextPracticeProblem();
+      }, right ? 650 : 1300);
+    } else if (state.screen === 'test'){
+      if (right){
+        state.streak++;
+        state.cardClass = 'correct';
+        state.feedback = '';
+        render();
+        if (state.streak >= TARGET_STREAK){
+          setTimeout(finishTest, 500);
+        } else {
+          setTimeout(nextTestProblem, 450);
+        }
+      } else {
+        state.streak = 0;
+        state.testWrongTotal++;
+        state.testZeroCount = 0;
+        state.cardClass = 'wrong';
+        state.feedback = 'Svar: ' + state.problem.answer;
+        render();
+        setTimeout(function(){
+          startTimer();
+          nextTestProblem();
+        }, 1300);
+      }
+    }
+  }
+
+  function finishTest(){
+    stopTimer();
+    state.finalTime = state.elapsed;
+    var isRecord = (state.bestTime === null) || (state.finalTime < state.bestTime);
+    state.isNewRecord = isRecord;
+    if (isRecord){ saveBestTime(state.finalTime); }
+    state.screen = 'diploma';
+    render();
+  }
+
+  function drawStar(ctx, cx, cy, spikes, outerR, innerR, color){
+    var rot = Math.PI / 2 * 3;
+    var step = Math.PI / spikes;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - outerR);
+    for (var i = 0; i < spikes; i++){
+      ctx.lineTo(cx + Math.cos(rot) * outerR, cy + Math.sin(rot) * outerR);
+      rot += step;
+      ctx.lineTo(cx + Math.cos(rot) * innerR, cy + Math.sin(rot) * innerR);
+      rot += step;
+    }
+    ctx.lineTo(cx, cy - outerR);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+
+  function captureDiploma(){
+    var w = 900, h = 560, cx = w / 2;
+    var canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    var ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#F2EADA';
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.strokeStyle = '#C99A3C';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(18, 18, w - 36, h - 36);
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(26, 26, w - 52, h - 52);
+
+    var sealY = 108;
+    ctx.beginPath();
+    ctx.arc(cx, sealY, 40, 0, Math.PI * 2);
+    ctx.fillStyle = '#C99A3C';
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#8C6A22';
+    ctx.stroke();
+    drawStar(ctx, cx, sealY - 3, 5, 16, 7, '#F2EADA');
+    ctx.beginPath();
+    ctx.moveTo(cx - 14, sealY + 34); ctx.lineTo(cx - 22, sealY + 68); ctx.lineTo(cx - 2, sealY + 58);
+    ctx.closePath(); ctx.fillStyle = '#A24C3B'; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx + 14, sealY + 34); ctx.lineTo(cx + 22, sealY + 68); ctx.lineTo(cx + 2, sealY + 58);
+    ctx.closePath(); ctx.fill();
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#23302B';
+    ctx.font = '34px Georgia, serif';
+    ctx.fillText('Delingssertifikat', cx, 205);
+
+    var nameField = document.getElementById('name-input');
+    var name = (nameField && nameField.value.trim()) || 'Navn ikke skrevet inn';
+    ctx.font = '27px Georgia, serif';
+    ctx.fillText(name, cx, 253);
+    var nameWidth = ctx.measureText(name).width;
+    ctx.strokeStyle = '#23302B';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx - Math.max(nameWidth / 2 + 20, 110), 266);
+    ctx.lineTo(cx + Math.max(nameWidth / 2 + 20, 110), 266);
+    ctx.stroke();
+
+    ctx.font = '16px "Segoe UI", sans-serif';
+    ctx.fillStyle = '#4A5850';
+    ctx.fillText(TARGET_STREAK + ' riktige p\u00e5 rad', cx, 305);
+
+    ctx.font = '44px Arial, sans-serif';
+    ctx.fillStyle = '#23302B';
+    ctx.fillText(fmtTime(state.finalTime), cx, 368);
+
+    if (state.isNewRecord){
+      ctx.font = 'bold 15px "Segoe UI", sans-serif';
+      ctx.fillStyle = '#A87F2E';
+      ctx.fillText('Ny rekord!', cx, 398);
+    } else if (state.bestTime !== null){
+      ctx.font = '14px "Segoe UI", sans-serif';
+      ctx.fillStyle = '#A87F2E';
+      ctx.fillText('Beste tid: ' + fmtTime(state.bestTime), cx, 398);
+    }
+
+    ctx.font = '13px "Segoe UI", sans-serif';
+    ctx.fillStyle = '#4A5850';
+    ctx.fillText(new Date().toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' }), cx, 500);
+
+    canvas.toBlob(function(blob){
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'delingssertifikat.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+    }, 'image/png');
+  }
+
+  function sealSVG(size){
+    size = size || 46;
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<circle cx="32" cy="26" r="19" fill="#C99A3C"/>' +
+      '<circle cx="32" cy="26" r="19" stroke="#8C6A22" stroke-width="1.5"/>' +
+      '<circle cx="32" cy="26" r="13" fill="none" stroke="#F2EADA" stroke-width="1.2" stroke-dasharray="2.5 2.5"/>' +
+      '<path d="M32 18 L34.2 23.2 L40 23.7 L35.6 27.4 L37 33 L32 29.9 L27 33 L28.4 27.4 L24 23.7 L29.8 23.2 Z" fill="#F2EADA"/>' +
+      '<path d="M22 40 L18 58 L32 51 L46 58 L42 40" fill="#A24C3B"/>' +
+      '</svg>';
+  }
+
+  // ---------------- Answer widgets ----------------
+  function modeSwitchHTML(){
+    return '<div class="mode-row"><div class="mode-switch">' +
+      '<button id="mode-type" class="' + (state.answerMode === 'type' ? 'active' : '') + '">Skriv svar</button>' +
+      '<button id="mode-mc" class="' + (state.answerMode === 'mc' ? 'active' : '') + '">Velg svar</button>' +
+      '</div></div>';
+  }
+
+  function typePanelHTML(){
+    var display = state.typedValue.length ? state.typedValue : '';
+    var keys = ['1','2','3','4','5','6','7','8','9','','0','ok'];
+    var html = '<div class="type-panel">';
+    html += '<div class="answer-display"><input type="text" inputmode="numeric" pattern="[0-9]*" id="answer-input" placeholder="?" autocomplete="off" value="' + display + '"></div>';
+    html += '<div class="keypad">';
+    keys.forEach(function(k){
+      if (k === ''){
+        html += '<button class="key-btn clear" id="key-clear">Slett</button>';
+      } else if (k === 'ok'){
+        html += '<button class="key-btn submit" id="key-ok"' + (state.typedValue.length ? '' : ' disabled') + '>OK</button>';
+      } else {
+        html += '<button class="key-btn" data-digit="' + k + '">' + k + '</button>';
+      }
+    });
+    html += '</div></div>';
+    return html;
+  }
+
+  function mcPanelHTML(){
+    var opts = state.mcOptions || [];
+    var html = '<div class="mc-grid">';
+    opts.forEach(function(n){
+      html += '<button class="mc-btn" data-mc="' + n + '">' + n + '</button>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function answerAreaHTML(){
+    var panel = state.answerMode === 'mc' ? mcPanelHTML() : typePanelHTML();
+    return '<div class="answer-area">' + modeSwitchHTML() + panel + '</div>';
+  }
+
+  function attachAnswerHandlers(root){
+    var modeType = root.querySelector('#mode-type');
+    var modeMc = root.querySelector('#mode-mc');
+    if (modeType) modeType.addEventListener('click', function(){ setAnswerMode('type'); });
+    if (modeMc) modeMc.addEventListener('click', function(){ setAnswerMode('mc'); });
+
+    if (state.answerMode === 'mc'){
+      root.querySelectorAll('[data-mc]').forEach(function(b){
+        b.addEventListener('click', function(){
+          submitAnswer(parseInt(b.getAttribute('data-mc'), 10));
+        });
+      });
+    } else {
+      var input = root.querySelector('#answer-input');
+      var okBtn = root.querySelector('#key-ok');
+      var clearBtn = root.querySelector('#key-clear');
+
+      function syncFromInput(raw){
+        var digits = raw.replace(/[^0-9]/g, '').slice(0, MAX_TYPED_LEN);
+        state.typedValue = digits;
+      }
+
+      function submitTyped(){
+        if (!state.typedValue.length) return;
+        submitAnswer(parseInt(state.typedValue, 10));
+      }
+
+      if (input){
+        input.addEventListener('input', function(){
+          syncFromInput(input.value);
+          if (okBtn) okBtn.disabled = !state.typedValue.length;
+          input.value = state.typedValue;
+        });
+        input.addEventListener('keydown', function(e){
+          if (e.key === 'Enter') submitTyped();
+        });
+        if (!state.cardClass) input.focus();
+      }
+      root.querySelectorAll('[data-digit]').forEach(function(b){
+        b.addEventListener('click', function(){
+          if (state.typedValue.length >= MAX_TYPED_LEN) return;
+          state.typedValue += b.getAttribute('data-digit');
+          if (input){ input.value = state.typedValue; input.focus(); }
+          if (okBtn) okBtn.disabled = !state.typedValue.length;
+        });
+      });
+      if (clearBtn){
+        clearBtn.addEventListener('click', function(){
+          state.typedValue = state.typedValue.slice(0, -1);
+          if (input){ input.value = state.typedValue; input.focus(); }
+          if (okBtn) okBtn.disabled = !state.typedValue.length;
+        });
+      }
+      if (okBtn) okBtn.addEventListener('click', submitTyped);
+    }
+  }
+
+  function headerHTML(showHome){
+    return '<header class="board' + (showHome ? ' compact' : '') + '"><div class="row">' +
+      '<h1>Delingstabellen</h1>' +
+      (showHome ? '<button class="home-link" id="go-home">Hjem</button>' : '') +
+      '</div></header>';
+  }
+
+  function render(){
+    app.innerHTML = '';
+    var html = '';
+
+    if (state.screen === 'home'){
+      html += headerHTML(false);
+      html += '<main><div class="wrap">';
+      html += '<p class="intro-line">Velg en tabell, eller ta testen.</p>';
+      html += '<div class="grid">';
+      html += '<button class="tile test" data-test="1"><span class="seal">' + sealSVG(38) + '</span><span class="num">Delingstest</span><span class="label">' + TARGET_STREAK + ' på rad</span></button>';
+      html += '<button class="tile wide" data-range="1-5"><span class="num">1\u20135</span><span class="label">Blandet \u00f8ving</span></button>';
+      html += '<button class="tile wide" data-range="6-10"><span class="num">6\u201310</span><span class="label">Blandet \u00f8ving</span></button>';
+      html += '<button class="tile wide" data-range="1-10"><span class="num">1\u201310</span><span class="label">Full \u00f8ving</span></button>';
+      for (var t = 1; t <= 10; t++){
+        html += '<button class="tile" data-table="' + t + '"><span class="num">' + t + '</span><span class="label">Del p\u00e5 ' + t + '</span></button>';
+      }
+      html += '</div></div></main>';
+
+      app.innerHTML = html;
+      app.querySelectorAll('[data-table]').forEach(function(b){
+        b.addEventListener('click', function(){
+          var t = parseInt(b.getAttribute('data-table'), 10);
+          startPractice([t], 'Del p\u00e5 ' + t);
+        });
+      });
+      app.querySelectorAll('[data-range]').forEach(function(b){
+        b.addEventListener('click', function(){
+          var r = b.getAttribute('data-range');
+          if (r === '1-5'){ startPractice([1,2,3,4,5], '1\u20135'); }
+          else if (r === '6-10'){ startPractice([6,7,8,9,10], '6\u201310'); }
+          else { startPractice([1,2,3,4,5,6,7,8,9,10], '1\u201310'); }
+        });
+      });
+      var testTile = app.querySelector('[data-test]');
+      if (testTile) testTile.addEventListener('click', startTestIntro);
+      return;
+    }
+
+    if (state.screen === 'practice'){
+      html += headerHTML(true);
+      html += '<main><div class="wrap session">';
+      html += '<div class="meta-row"><span>' + state.label + '</span><span>' + (state.idx+1) + ' / ' + state.queue.length + '</span></div>';
+      html += '<div class="flash-card ' + state.cardClass + '">';
+      html += '<div class="problem">' + state.problem.dividend + ' : ' + state.problem.divisor + ' = ?</div>';
+      html += '<div class="feedback-line" aria-live="polite">' + state.feedback + '</div>';
+      html += '</div>';
+      html += answerAreaHTML();
+      html += '</div></main>';
+
+      app.innerHTML = html;
+      var homeBtn = app.querySelector('#go-home');
+      if (homeBtn) homeBtn.addEventListener('click', goHome);
+      attachAnswerHandlers(app);
+      return;
+    }
+
+    if (state.screen === 'practice-summary'){
+      html += headerHTML(true);
+      html += '<main><div class="wrap session">';
+      html += '<div class="summary-card">';
+      html += '<div style="font-size:15px;color:var(--ink-soft);">' + state.label + '</div>';
+      html += '<div class="score">' + state.correct + ' / ' + state.queue.length + '</div>';
+      html += '<div style="color:var(--ink-soft);font-size:14.5px;">riktige</div>';
+      html += '<div class="btn-row">';
+      html += '<button class="primary-btn" id="retry">\u00D8v igjen</button>';
+      html += '<button class="ghost-btn" id="back">Tilbake</button>';
+      html += '</div></div></div></main>';
+
+      app.innerHTML = html;
+      app.querySelector('#go-home').addEventListener('click', goHome);
+      app.querySelector('#retry').addEventListener('click', function(){ startPractice(state.tables, state.label); });
+      app.querySelector('#back').addEventListener('click', goHome);
+      return;
+    }
+
+    if (state.screen === 'test-intro'){
+      html += headerHTML(true);
+      html += '<main><div class="wrap session">';
+      html += '<div class="start-panel">';
+      html += '<div class="seal-medal">' + sealSVG(56) + '</div>';
+      html += '<h2>Delingstesten</h2>';
+      html += '<p>' + TARGET_STREAK + ' riktige p\u00e5 rad. Feil nullstiller streak og tid.</p>';
+      html += '<button class="primary-btn" id="start-test">Start</button>';
+      html += '</div></div></main>';
+
+      app.innerHTML = html;
+      app.querySelector('#go-home').addEventListener('click', goHome);
+      app.querySelector('#start-test').addEventListener('click', beginTest);
+      return;
+    }
+
+    if (state.screen === 'test'){
+      html += headerHTML(true);
+      html += '<main><div class="wrap session">';
+      html += '<div class="meta-row"><span class="streak">' + state.streak + ' / ' + TARGET_STREAK + '</span><span class="timer" id="live-timer">' + fmtClock(state.elapsed) + '</span></div>';
+      html += '<div class="flash-card ' + state.cardClass + '">';
+      html += '<div class="problem">' + state.problem.dividend + ' : ' + state.problem.divisor + ' = ?</div>';
+      html += '<div class="feedback-line" aria-live="polite">' + state.feedback + '</div>';
+      html += '</div>';
+      html += answerAreaHTML();
+      html += '</div></main>';
+
+      app.innerHTML = html;
+      var hb = app.querySelector('#go-home');
+      if (hb) hb.addEventListener('click', goHome);
+      attachAnswerHandlers(app);
+      return;
+    }
+
+    if (state.screen === 'diploma'){
+      html += headerHTML(true);
+      html += '<main><div class="wrap session">';
+      html += '<div class="diploma">';
+      html += '<div class="kicker">Delingstabellen</div>';
+      html += '<div class="seal-medal">' + sealSVG(60) + '</div>';
+      html += '<h2>Delingssertifikat</h2>';
+      html += '<div class="name-line no-print-edit"><input type="text" id="name-input" placeholder="Navn" maxlength="40"></div>';
+      html += '<p class="result-line">' + TARGET_STREAK + ' riktige p\u00e5 rad</p>';
+      html += '<div class="time-big">' + fmtTime(state.finalTime) + '</div>';
+      html += '<div class="record-note">' + (state.isNewRecord ? 'Ny rekord!' : (state.bestTime !== null ? 'Beste tid: ' + fmtTime(state.bestTime) : '')) + '</div>';
+      html += '<div class="date-line">' + new Date().toLocaleDateString('nb-NO', { day:'numeric', month:'long', year:'numeric' }) + '</div>';
+      html += '</div>';
+      html += '<div class="btn-row no-print">';
+      html += '<button class="primary-btn" id="screenshot-diploma">Ta skjermbilde</button>';
+      html += '<button class="ghost-btn" id="retest">Pr\u00f8v igjen</button>';
+      html += '<button class="ghost-btn" id="back">Tilbake</button>';
+      html += '</div></div></main>';
+
+      app.innerHTML = html;
+      app.querySelector('#go-home').addEventListener('click', goHome);
+      app.querySelector('#screenshot-diploma').addEventListener('click', captureDiploma);
+      app.querySelector('#retest').addEventListener('click', startTestIntro);
+      app.querySelector('#back').addEventListener('click', goHome);
+      return;
+    }
+  }
+
+  loadAnswerMode(function(mode){
+    if (mode) state.answerMode = mode;
+    render();
+  });
+})();
+</script>
+</body>
+</html>
